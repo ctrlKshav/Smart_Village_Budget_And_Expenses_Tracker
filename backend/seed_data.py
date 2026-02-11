@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from app.database import SessionLocal
-from app import models
+from app import models, crud, schemas
 
 
 def seed_data():
@@ -12,10 +12,26 @@ def seed_data():
     db = SessionLocal()
     
     try:
+        # Create admin user if doesn't exist
+        admin_email = "admin@example.com"
+        existing_admin = crud.get_user_by_email(db=db, email=admin_email)
+        
+        if not existing_admin:
+            print("👤 Creating admin user...")
+            admin_user = schemas.UserCreate(
+                name="Admin User",
+                email=admin_email,
+                password="admin123"
+            )
+            admin = crud.create_user(db=db, user=admin_user)
+            print(f"✓ Created admin user: {admin.email}")
+        else:
+            print(f"✓ Admin user already exists: {existing_admin.email}")
+        
         # Check if data already exists
         existing_villages = db.query(models.Village).count()
         if existing_villages > 0:
-            print(f"✓ Database already has {existing_villages} villages. Skipping seed.")
+            print(f"✓ Database already has {existing_villages} villages. Skipping village seed.")
             return
         
         print("🌱 Seeding database with sample data...")

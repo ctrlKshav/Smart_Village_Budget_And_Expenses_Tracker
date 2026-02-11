@@ -2,8 +2,48 @@
 from sqlalchemy import func
 from typing import List, Optional
 from decimal import Decimal
+from passlib.context import CryptContext
 
 from . import models, schemas
+
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+# ============ User CRUD ============
+
+def get_password_hash(password: str) -> str:
+    """Hash a password"""
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash"""
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_user_by_email(db: Session, email: str) -> Optional[models.User]:
+    """Get a user by email"""
+    return db.query(models.User).filter(models.User.email == email).first()
+
+
+def get_user_by_id(db: Session, user_id: int) -> Optional[models.User]:
+    """Get a user by ID"""
+    return db.query(models.User).filter(models.User.id == user_id).first()
+
+
+def create_user(db: Session, user: schemas.UserCreate) -> models.User:
+    """Create a new user"""
+    hashed_password = get_password_hash(user.password)
+    db_user = models.User(
+        name=user.name,
+        email=user.email,
+        hashed_password=hashed_password
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
 
 
 # ============ Village CRUD ============
