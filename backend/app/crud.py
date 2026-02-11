@@ -56,6 +56,11 @@ def get_budget_by_id(db: Session, budget_id: int) -> Optional[models.Budget]:
     return db.query(models.Budget).filter(models.Budget.id == budget_id).first()
 
 
+def get_all_budgets(db: Session, skip: int = 0, limit: int = 100) -> List[models.Budget]:
+    """Get all budgets with pagination"""
+    return db.query(models.Budget).offset(skip).limit(limit).all()
+
+
 # ============ Budget Category CRUD ============
 
 def create_category(db: Session, category: schemas.CategoryCreate) -> models.BudgetCategory:
@@ -85,6 +90,11 @@ def get_category_by_id(db: Session, category_id: int) -> Optional[models.BudgetC
     ).first()
 
 
+def get_all_categories(db: Session, skip: int = 0, limit: int = 100) -> List[models.BudgetCategory]:
+    """Get all categories with pagination"""
+    return db.query(models.BudgetCategory).offset(skip).limit(limit).all()
+
+
 # ============ Expense CRUD ============
 
 def create_expense(db: Session, expense: schemas.ExpenseCreate) -> models.Expense:
@@ -112,6 +122,11 @@ def get_expenses_by_category(
     return db.query(models.Expense).filter(
         models.Expense.category_id == category_id
     ).offset(skip).limit(limit).all()
+
+
+def get_all_expenses(db: Session, skip: int = 0, limit: int = 100) -> List[models.Expense]:
+    """Get all expenses with pagination"""
+    return db.query(models.Expense).offset(skip).limit(limit).all()
 
 
 def get_remaining_budget_by_category(db: Session, category_id: int) -> dict:

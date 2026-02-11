@@ -1,4 +1,4 @@
-﻿import { useState, FormEvent } from 'react';
+﻿import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 
 export default function Register() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -30,12 +30,11 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // TODO: Replace with actual API call when backend auth is ready
-      await login(formData.email, formData.password);
+      await register(formData.name, formData.email, formData.password);
       navigate('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration failed:', error);
-      setError('Registration failed. Please try again.');
+      setError(error.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }

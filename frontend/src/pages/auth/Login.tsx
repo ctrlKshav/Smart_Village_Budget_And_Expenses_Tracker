@@ -1,4 +1,4 @@
-﻿import { useState, FormEvent } from 'react';
+﻿import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -14,16 +14,19 @@ export default function Login() {
     password: '',
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
 
     try {
       await login(formData.email, formData.password);
       navigate('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
+      setError(error.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -40,6 +43,11 @@ export default function Login() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-md text-sm">
+                {error}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

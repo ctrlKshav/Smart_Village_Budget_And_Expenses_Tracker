@@ -1,14 +1,17 @@
 ﻿import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '@/services/api';
 
 interface User {
+  id: number;
   email: string;
-  name?: string;
+  name: string;
 }
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -30,16 +33,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
-    // TODO: Replace with actual API call when backend auth is ready
-    // For now, simulate login
-    const dummyToken = 'dummy_token_' + Date.now();
-    const userData = { email, name: email.split('@')[0] };
-    
-    localStorage.setItem('auth_token', dummyToken);
-    localStorage.setItem('auth_user', JSON.stringify(userData));
-    
-    setIsAuthenticated(true);
-    setUser(userData);
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      const { access_token, user: userData } = response.data;
+      
+      localStorage.setItem('auth_token', access_token);
+      localStorage.setItem('auth_user', JSON.stringify(userData));
+      
+      setIsAuthenticated(true);
+      setUser(userData);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Login failed');
+    }
+  };
+
+  const register = async (name: string, email: string, password: string) => {
+    try {
+      const response = await api.post('/auth/register', { name, email, password });
+      const { access_token, user: userData } = response.data;
+      
+      localStorage.setItem('auth_token', access_token);
+      localStorage.setItem('auth_user', JSON.stringify(userData));
+      
+      setIsAuthenticated(true);
+      setUser(userData);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.detail || 'Registration failed');
+    }
   };
 
   const logout = () => {
@@ -50,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

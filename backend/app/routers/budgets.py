@@ -11,6 +11,16 @@ router = APIRouter(
 )
 
 
+@router.get("/", response_model=List[schemas.BudgetOut])
+def get_all_budgets(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Get all budgets with pagination"""
+    return crud.get_all_budgets(db=db, skip=skip, limit=limit)
+
+
 @router.post("/", response_model=schemas.BudgetOut, status_code=status.HTTP_201_CREATED)
 def create_budget(
     budget: schemas.BudgetCreate,

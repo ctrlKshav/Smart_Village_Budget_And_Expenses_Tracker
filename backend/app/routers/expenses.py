@@ -11,6 +11,16 @@ router = APIRouter(
 )
 
 
+@router.get("/", response_model=List[schemas.ExpenseOut])
+def get_all_expenses(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Get all expenses with pagination"""
+    return crud.get_all_expenses(db=db, skip=skip, limit=limit)
+
+
 @router.post("/", response_model=schemas.ExpenseOut, status_code=status.HTTP_201_CREATED)
 def create_expense(
     expense: schemas.ExpenseCreate,

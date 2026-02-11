@@ -11,6 +11,16 @@ router = APIRouter(
 )
 
 
+@router.get("/", response_model=List[schemas.CategoryOut])
+def get_all_categories(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Get all categories with pagination"""
+    return crud.get_all_categories(db=db, skip=skip, limit=limit)
+
+
 @router.post("/", response_model=schemas.CategoryOut, status_code=status.HTTP_201_CREATED)
 def create_category(
     category: schemas.CategoryCreate,
