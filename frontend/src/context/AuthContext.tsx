@@ -1,17 +1,29 @@
 ﻿import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '@/services/api';
 
+interface Village {
+  id: number;
+  name: string;
+  district: string | null;
+  state: string | null;
+  created_at: string;
+}
+
 interface User {
   id: number;
   email: string;
   name: string;
+  village_id: number | null;
+  is_active: boolean;
+  created_at: string;
+  village?: Village;
 }
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string, village_id: number) => Promise<void>;
   logout: () => void;
 }
 
@@ -47,9 +59,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (name: string, email: string, password: string, village_id: number) => {
     try {
-      const response = await api.post('/auth/register', { name, email, password });
+      const response = await api.post('/auth/register', { name, email, password, village_id });
       const { access_token, user: userData } = response.data;
       
       localStorage.setItem('auth_token', access_token);

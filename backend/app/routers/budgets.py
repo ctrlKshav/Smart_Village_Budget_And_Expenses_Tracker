@@ -2,8 +2,8 @@
 from sqlalchemy.orm import Session
 from typing import List
 
-from .. import crud, schemas
-from ..dependencies import get_db
+from .. import crud, schemas, models
+from ..dependencies import get_db, get_current_user_with_village
 
 router = APIRouter(
     prefix="/budgets",
@@ -12,61 +12,37 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[schemas.BudgetOut])
-def get_all_budgets(
-    skip: int = 0,
-    limit: int = 100,
+def get_my_budgets(
+    current_user: models.User = Depends(get_current_user_with_village),
     db: Session = Depends(get_db)
 ):
-    """Get all budgets with pagination"""
-    return crud.get_all_budgets(db=db, skip=skip, limit=limit)
+    """Get all budgets for the current user's village"""
+    return crud.get_budgets_by_village(db=db, village_id=current_user.village_id)
 
 
 @router.post("/", response_model=schemas.BudgetOut, status_code=status.HTTP_201_CREATED)
 def create_budget(
     budget: schemas.BudgetCreate,
+    current_user: models.User = Depends(get_current_user_with_village),
     db: Session = Depends(get_db)
 ):
-    """Create a new budget for a village"""
-    # Verify village exists
-    village = crud.get_village_by_id(db=db, village_id=budget.village_id)
-    if village is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Village with id {budget.village_id} not found"
-        )
-    
+    """Create a new budget for the current user's village"""
     try:
-        return crud.create_budget(db=db, budget=budget)
+        return crud.create_budget(db=db, budget=budget, village_id=current_user.village_id)
     except Exception as e:
         # Handle unique constraint violation
         if "unique_village_year" in str(e).lower():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Budget for village {budget.village_id} and year {budget.year} already exists"
+                detail=f"Budget for year {budget.year} already exists for your village"
             )
         raise
-
-
-@router.get("/village/{village_id}", response_model=List[schemas.BudgetOut])
-def get_budgets_by_village(
-    village_id: int,
-    db: Session = Depends(get_db)
-):
-    """Get all budgets for a specific village"""
-    # Verify village exists
-    village = crud.get_village_by_id(db=db, village_id=village_id)
-    if village is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Village with id {village_id} not found"
-        )
-    
-    return crud.get_budgets_by_village(db=db, village_id=village_id)
 
 
 @router.get("/{budget_id}", response_model=schemas.BudgetOut)
 def get_budget(
     budget_id: int,
+    current_user: models.User = Depends(get_current_user_with_village),
     db: Session = Depends(get_db)
 ):
     """Get a specific budget by ID"""
@@ -76,4 +52,75 @@ def get_budget(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Budget with id {budget_id} not found"
         )
+    
+    # Ensure budget belongs to user's village
+    if budget.village_id != current_user.village_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this budget"
+        )
+    
     return budget
+
+
+@router.put("/{budget_id}", response_model=schemas.BudgetOut)
+def update_budget(
+    budget_id: int,
+    budget_update: schemas.BudgetUpdate,
+    current_user: models.User = Depends(get_current_user_with_village),
+    db: Session = Depends(get_db)
+):
+    """Update a budget"""
+    # Get existing budget
+    existing_budget = crud.get_budget_by_id(db=db, budget_id=budget_id)
+    if existing_budget is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Budget with id {budget_id} not found"
+        )
+    
+    # Ensure budget belongs to user's village
+    if existing_budget.village_id != current_user.village_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this budget"
+        )
+    
+    # Update budget
+    try:
+        updated_budget = crud.update_budget(db=db, budget_id=budget_id, budget_update=budget_update)
+        return updated_budget
+    except Exception as e:
+        if "unique_village_year" in str(e).lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Budget for year {budget_update.year} already exists for your village"
+            )
+        raise
+
+
+@router.delete("/{budget_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_budget(
+    budget_id: int,
+    current_user: models.User = Depends(get_current_user_with_village),
+    db: Session = Depends(get_db)
+):
+    """Delete a budget"""
+    # Get existing budget
+    existing_budget = crud.get_budget_by_id(db=db, budget_id=budget_id)
+    if existing_budget is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Budget with id {budget_id} not found"
+        )
+    
+    # Ensure budget belongs to user's village
+    if existing_budget.village_id != current_user.village_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this budget"
+        )
+    
+    # Delete budget
+    crud.delete_budget(db=db, budget_id=budget_id)
+    return None

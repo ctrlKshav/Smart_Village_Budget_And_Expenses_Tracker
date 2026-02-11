@@ -13,8 +13,12 @@ class User(Base):
     name = Column(String(150), nullable=False)
     email = Column(String(150), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
+    village_id = Column(Integer, ForeignKey("villages.id", ondelete="SET NULL"), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    village = relationship("Village", back_populates="users")
 
 
 class Village(Base):
@@ -28,6 +32,7 @@ class Village(Base):
 
     # Relationships
     budgets = relationship("Budget", back_populates="village", cascade="all, delete-orphan")
+    users = relationship("User", back_populates="village")
 
 
 class Budget(Base):

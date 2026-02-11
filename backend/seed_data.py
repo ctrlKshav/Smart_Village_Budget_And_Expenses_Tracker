@@ -12,6 +12,36 @@ def seed_data():
     db = SessionLocal()
     
     try:
+        # Check if villages exist first (to determine which village to assign to admin)
+        existing_villages = db.query(models.Village).count()
+        
+        # Create villages if they don't exist
+        if existing_villages == 0:
+            print("🌱 Seeding database with sample data...")
+            
+            # Create villages
+            villages_data = [
+                {"name": "Greenfield Village", "district": "Central District", "state": "Maharashtra"},
+                {"name": "Riverside Village", "district": "North District", "state": "Punjab"},
+                {"name": "Mountain View Village", "district": "Hill District", "state": "Himachal Pradesh"},
+            ]
+            
+            villages = []
+            for village_data in villages_data:
+                village = models.Village(**village_data)
+                db.add(village)
+                villages.append(village)
+            
+            db.commit()
+            print(f"✓ Created {len(villages)} villages")
+        else:
+            print(f"✓ Database already has {existing_villages} villages.")
+            villages = db.query(models.Village).all()
+        
+        # Refresh villages to ensure they have IDs
+        for v in villages:
+            db.refresh(v)
+        
         # Create admin user if doesn't exist
         admin_email = "admin@example.com"
         existing_admin = crud.get_user_by_email(db=db, email=admin_email)
@@ -21,36 +51,25 @@ def seed_data():
             admin_user = schemas.UserCreate(
                 name="Admin User",
                 email=admin_email,
-                password="admin123"
+                password="admin123",
+                village_id=villages[0].id  # Assign to first village
             )
             admin = crud.create_user(db=db, user=admin_user)
-            print(f"✓ Created admin user: {admin.email}")
+            print(f"✓ Created admin user: {admin.email} for village: {villages[0].name}")
         else:
-            print(f"✓ Admin user already exists: {existing_admin.email}")
+            # Update admin user's village if not set
+            if existing_admin.village_id is None:
+                existing_admin.village_id = villages[0].id
+                db.commit()
+                print(f"✓ Updated admin user {existing_admin.email} with village: {villages[0].name}")
+            else:
+                print(f"✓ Admin user already exists: {existing_admin.email}")
         
-        # Check if data already exists
-        existing_villages = db.query(models.Village).count()
-        if existing_villages > 0:
-            print(f"✓ Database already has {existing_villages} villages. Skipping village seed.")
+        # Check if budgets already exist
+        existing_budgets = db.query(models.Budget).count()
+        if existing_budgets > 0:
+            print(f"✓ Database already has {existing_budgets} budgets. Skipping budget seed.")
             return
-        
-        print("🌱 Seeding database with sample data...")
-        
-        # Create villages
-        villages_data = [
-            {"name": "Greenfield Village", "district": "Central District", "state": "Maharashtra"},
-            {"name": "Riverside Village", "district": "North District", "state": "Punjab"},
-            {"name": "Mountain View Village", "district": "Hill District", "state": "Himachal Pradesh"},
-        ]
-        
-        villages = []
-        for village_data in villages_data:
-            village = models.Village(**village_data)
-            db.add(village)
-            villages.append(village)
-        
-        db.commit()
-        print(f"✓ Created {len(villages)} villages")
         
         # Create budgets for villages
         budgets = []

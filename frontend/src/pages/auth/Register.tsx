@@ -1,22 +1,45 @@
-﻿import { useState, type FormEvent } from 'react';
+﻿import { useState, useEffect, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import axios from 'axios';
+
+interface Village {
+  id: number;
+  name: string;
+  district: string | null;
+  state: string | null;
+}
 
 export default function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
+  const [villages, setVillages] = useState<Village[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
+    village_id: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    // Fetch villages for selection (public endpoint)
+    const fetchVillages = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/villages/');
+        setVillages(response.data);
+      } catch (error) {
+        console.error('Error fetching villages:', error);
+      }
+    };
+    fetchVillages();
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -27,10 +50,15 @@ export default function Register() {
       return;
     }
 
+    if (!formData.village_id) {
+      setError('Please select a village');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await register(formData.name, formData.email, formData.password);
+      await register(formData.name, formData.email, formData.password, parseInt(formData.village_id));
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Registration failed:', error);
@@ -77,6 +105,23 @@ export default function Register() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="village_id">Village</Label>
+              <select
+                id="village_id"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={formData.village_id}
+                onChange={(e) => setFormData({ ...formData, village_id: e.target.value })}
+                required
+              >
+                <option value="">Select your village</option>
+                {villages.map((village) => (
+                  <option key={village.id} value={village.id}>
+                    {village.name} - {village.district}, {village.state}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>

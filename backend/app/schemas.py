@@ -10,6 +10,7 @@ class UserCreate(BaseModel):
     name: str
     email: EmailStr
     password: str
+    village_id: int
 
 
 class UserOut(BaseModel):
@@ -18,8 +19,10 @@ class UserOut(BaseModel):
     id: int
     name: str
     email: str
+    village_id: Optional[int] = None
     is_active: bool
     created_at: datetime
+    village: Optional['VillageOut'] = None
 
 
 class UserLogin(BaseModel):
@@ -54,9 +57,13 @@ class VillageOut(BaseModel):
 # ============ Budget Schemas ============
 
 class BudgetCreate(BaseModel):
-    village_id: int
     year: int
     total_allocated: Decimal
+
+
+class BudgetUpdate(BaseModel):
+    year: Optional[int] = None
+    total_allocated: Optional[Decimal] = None
 
 
 class BudgetOut(BaseModel):
@@ -93,6 +100,14 @@ class ExpenseCreate(BaseModel):
     amount: Decimal
     vendor_name: Optional[str] = None
     expense_date: date
+
+
+class ExpenseUpdate(BaseModel):
+    category_id: Optional[int] = None
+    description: Optional[str] = None
+    amount: Optional[Decimal] = None
+    vendor_name: Optional[str] = None
+    expense_date: Optional[date] = None
 
 
 class ExpenseOut(BaseModel):

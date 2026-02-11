@@ -1,9 +1,9 @@
-﻿from fastapi import APIRouter, HTTPException, status, Depends, Header
+﻿from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.orm import Session
-from typing import Optional
+from datetime import timedelta
 
-from .. import crud, schemas
-from ..dependencies import get_db
+from .. import crud, schemas, models
+from ..dependencies import get_db, get_current_user
 
 router = APIRouter(
     prefix="/auth",
@@ -22,14 +22,25 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered"
         )
     
+    # Verify village exists
+    village = crud.get_village_by_id(db=db, village_id=user.village_id)
+    if not village:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Village not found"
+        )
+    
     # Create new user
     db_user = crud.create_user(db=db, user=user)
     
-    # Generate token (mock implementation - in production use JWT)
-    token = f"mock_token_{db_user.email}"
+    # Generate JWT token
+    access_token_expires = timedelta(minutes=crud.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = crud.create_access_token(
+        data={"sub": str(db_user.id)}, expires_delta=access_token_expires
+    )
     
     return {
-        "access_token": token,
+        "access_token": access_token,
         "token_type": "bearer",
         "user": db_user
     }
@@ -60,43 +71,20 @@ def login(credentials: schemas.UserLogin, db: Session = Depends(get_db)):
             detail="Account is inactive"
         )
     
-    # Generate token (mock implementation - in production use JWT)
-    token = f"mock_token_{user.email}"
+    # Generate JWT token
+    access_token_expires = timedelta(minutes=crud.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = crud.create_access_token(
+        data={"sub": str(user.id)}, expires_delta=access_token_expires
+    )
     
     return {
-        "access_token": token,
+        "access_token": access_token,
         "token_type": "bearer",
         "user": user
     }
 
 
 @router.get("/me", response_model=schemas.UserOut)
-def get_current_user(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)):
+def get_me(current_user: models.User = Depends(get_current_user)):
     """Get current user info"""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated"
-        )
-    
-    # Extract token
-    token = authorization.replace("Bearer ", "")
-    
-    # Mock token validation - extract email from token
-    if not token.startswith("mock_token_"):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
-        )
-    
-    # Extract email from token (mock)
-    email = token.replace("mock_token_", "")
-    user = crud.get_user_by_email(db=db, email=email)
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
-        )
-    
-    return user
+    return current_user

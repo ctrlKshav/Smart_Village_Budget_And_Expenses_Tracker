@@ -2,8 +2,8 @@
 from sqlalchemy.orm import Session
 from typing import List
 
-from .. import crud, schemas
-from ..dependencies import get_db
+from .. import crud, schemas, models
+from ..dependencies import get_db, get_current_user_with_village
 
 router = APIRouter(
     prefix="/categories",
@@ -12,13 +12,21 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[schemas.CategoryOut])
-def get_all_categories(
-    skip: int = 0,
-    limit: int = 100,
+def get_my_categories(
+    current_user: models.User = Depends(get_current_user_with_village),
     db: Session = Depends(get_db)
 ):
-    """Get all categories with pagination"""
-    return crud.get_all_categories(db=db, skip=skip, limit=limit)
+    """Get all categories for the current user's village budgets"""
+    # Get all budgets for user's village
+    budgets = crud.get_budgets_by_village(db=db, village_id=current_user.village_id)
+    
+    # Get categories for all these budgets
+    categories = []
+    for budget in budgets:
+        budget_categories = crud.get_categories_by_budget(db=db, budget_id=budget.id)
+        categories.extend(budget_categories)
+    
+    return categories
 
 
 @router.post("/", response_model=schemas.CategoryOut, status_code=status.HTTP_201_CREATED)

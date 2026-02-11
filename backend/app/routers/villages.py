@@ -1,9 +1,8 @@
 ﻿from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
 
-from .. import crud, schemas
-from ..dependencies import get_db
+from .. import crud, schemas, models
+from ..dependencies import get_db, get_current_user_with_village
 
 router = APIRouter(
     prefix="/villages",
@@ -11,35 +10,25 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=schemas.VillageOut, status_code=status.HTTP_201_CREATED)
-def create_village(
-    village: schemas.VillageCreate,
+@router.get("/", response_model=list[schemas.VillageOut])
+def list_villages(
     db: Session = Depends(get_db)
 ):
-    """Create a new village"""
-    return crud.create_village(db=db, village=village)
+    """List all villages (public endpoint for registration)"""
+    villages = crud.get_villages(db=db, skip=0, limit=100)
+    return villages
 
 
-@router.get("/", response_model=List[schemas.VillageOut])
-def get_villages(
-    skip: int = 0,
-    limit: int = 100,
+@router.get("/me", response_model=schemas.VillageOut)
+def get_my_village(
+    current_user: models.User = Depends(get_current_user_with_village),
     db: Session = Depends(get_db)
 ):
-    """Get all villages with pagination"""
-    return crud.get_villages(db=db, skip=skip, limit=limit)
-
-
-@router.get("/{village_id}", response_model=schemas.VillageOut)
-def get_village(
-    village_id: int,
-    db: Session = Depends(get_db)
-):
-    """Get a specific village by ID"""
-    village = crud.get_village_by_id(db=db, village_id=village_id)
+    """Get the current user's village details"""
+    village = crud.get_village_by_id(db=db, village_id=current_user.village_id)
     if village is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Village with id {village_id} not found"
+            detail="Village not found"
         )
     return village
