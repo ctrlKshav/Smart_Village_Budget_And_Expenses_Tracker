@@ -47,7 +47,7 @@ export default function Login() {
   useEffect(() => {
     const fetchVillages = async () => {
       try {
-        const res = await api.get('/villages/');
+        const res = await api.get('/villages/public');
         const data = res.data;
         setVillages(data || []);
         if (data && data.length > 0) setSelectedVillage(data[0].id);
