@@ -59,7 +59,7 @@ export function Navbar() {
 
         <div className="hidden md:flex">
           <Button asChild size="sm" className="rounded-full px-6">
-            <a href="#contact">Get Started</a>
+            <a href="/dashboard">Get Started</a>
           </Button>
         </div>
 
