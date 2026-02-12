@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, MapPin, Calendar, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Building2, MapPin, Calendar, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -23,8 +23,6 @@ export default function Villages() {
   const [village, setVillage] = useState<Village | null>(null);
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [editingVillage, setEditingVillage] = useState<Village | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     district: '',

@@ -4,7 +4,6 @@ import React from "react"
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  IndianRupee,
   TrendingUp,
   Plus,
   Pencil,

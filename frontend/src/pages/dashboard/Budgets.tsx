@@ -89,7 +89,7 @@ export default function Budgets() {
       await api.put(`/budgets/${editingBudget.id}`, formData);
       setIsEditOpen(false);
       setEditingBudget(null);
-      setFormData({ year: new Date().getFullYear(), total_allocated: '' });
+      setFormData({ year: new Date().getFullYear(), total_allocated: '', village_id: '' });
       fetchBudgets();
     } catch (error: any) {
       alert(error.response?.data?.detail || 'Failed to update budget');
