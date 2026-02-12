@@ -87,7 +87,7 @@ export function Navbar() {
               </a>
             ))}
             <Button asChild className="mt-3 rounded-full">
-              <a href="#contact" onClick={() => setMobileOpen(false)}>
+              <a href="/dashboard" onClick={() => setMobileOpen(false)}>
                 Get Started
               </a>
             </Button>
