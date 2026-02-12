@@ -1,4 +1,4 @@
-﻿from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 from typing import Optional, List
 from datetime import datetime, date
 from decimal import Decimal
@@ -10,24 +10,27 @@ class UserCreate(BaseModel):
     name: str
     email: EmailStr
     password: str
-    village_id: int
+    role: str  # 'admin' or 'villager'
+    village_id: Optional[int] = None
 
 
 class UserOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     id: int
     name: str
     email: str
+    role: str
     village_id: Optional[int] = None
     is_active: bool
     created_at: datetime
     village: Optional['VillageOut'] = None
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+    role: str  # 'admin' or 'villager'
+    village_id: Optional[int] = None  # Required for villagers
 
 
 class Token(BaseModel):
@@ -59,6 +62,7 @@ class VillageOut(BaseModel):
 class BudgetCreate(BaseModel):
     year: int
     total_allocated: Decimal
+    village_id: Optional[int] = None
 
 
 class BudgetUpdate(BaseModel):

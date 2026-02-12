@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { FolderOpen, DollarSign } from 'lucide-react';
 import api from '@/services/api';
+import CategoryCharts from '@/components/charts/CategoryCharts';
 
 interface Budget {
   id: number;
@@ -49,6 +50,7 @@ export default function Categories() {
 
   return (
     <div className="space-y-6">
+      <CategoryCharts categories={categories} budgets={budgets} />
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Budget Categories</h1>
         <p className="text-muted-foreground">View budget categories and their allocations</p>

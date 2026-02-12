@@ -1,16 +1,19 @@
 ﻿import { Link, useLocation } from 'react-router-dom';
 import { Home, Building2, DollarSign, FolderOpen, Receipt } from 'lucide-react';
-
-const navigation = [
-  { name: 'Dashboard Home', href: '/dashboard', icon: Home },
-  { name: 'Villages', href: '/dashboard/villages', icon: Building2 },
-  { name: 'Budgets', href: '/dashboard/budgets', icon: DollarSign },
-  { name: 'Categories', href: '/dashboard/categories', icon: FolderOpen },
-  { name: 'Expenses', href: '/dashboard/expenses', icon: Receipt },
-];
+import { useAuth } from '@/context/AuthContext';
 
 export default function Sidebar() {
   const location = useLocation();
+  const { user } = useAuth();
+
+  const navigation = [
+    { name: 'Dashboard Home', href: '/dashboard', icon: Home },
+    // Villages only visible to admin
+    ...(user?.role === 'admin' ? [{ name: 'Villages', href: '/dashboard/villages', icon: Building2 }] : []),
+    { name: 'Budgets', href: '/dashboard/budgets', icon: DollarSign },
+    { name: 'Categories', href: '/dashboard/categories', icon: FolderOpen },
+    { name: 'Expenses', href: '/dashboard/expenses', icon: Receipt },
+  ];
 
   return (
     <div className="fixed inset-y-0 left-0 z-50 w-64 border-r bg-background">
