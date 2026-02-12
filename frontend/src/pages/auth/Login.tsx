@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import api from '@/services/api';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -46,12 +47,12 @@ export default function Login() {
   useEffect(() => {
     const fetchVillages = async () => {
       try {
-        const res = await fetch('http://localhost:8000/villages/public');
-        const data = await res.json();
+        const res = await api.get('/villages/');
+        const data = res.data;
         setVillages(data || []);
         if (data && data.length > 0) setSelectedVillage(data[0].id);
       } catch (e) {
-        // ignore
+        // alert(e)
       }
     };
     fetchVillages();
