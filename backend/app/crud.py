@@ -42,11 +42,18 @@ def get_user_by_id(db: Session, user_id: int) -> Optional[models.User]:
 def create_user(db: Session, user: schemas.UserCreate) -> models.User:
     """Create a new user"""
     hashed_password = get_password_hash(user.password)
+    if user.role == "villager" and not user.village_id:
+        raise ValueError("Villager must have a village_id")
+    if user.role == "admin":
+        village_id = None
+    else:
+        village_id = user.village_id
     db_user = models.User(
         name=user.name,
         email=user.email,
         hashed_password=hashed_password,
-        village_id=user.village_id
+        role=user.role,
+        village_id=village_id
     )
     db.add(db_user)
     db.commit()

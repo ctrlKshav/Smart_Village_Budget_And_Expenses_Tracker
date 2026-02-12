@@ -1,9 +1,9 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
 from .. import crud, schemas, models
-from ..dependencies import get_db, get_current_user_with_village
+from ..dependencies import get_db, get_current_user
 
 router = APIRouter(
     prefix="/categories",
@@ -12,26 +12,24 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[schemas.CategoryOut])
-def get_my_categories(
-    current_user: models.User = Depends(get_current_user_with_village),
+def get_all_categories(
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all categories for the current user's village budgets"""
-    # Get all budgets for user's village
-    budgets = crud.get_budgets_by_village(db=db, village_id=current_user.village_id)
-    
-    # Get categories for all these budgets
-    categories = []
-    for budget in budgets:
-        budget_categories = crud.get_categories_by_budget(db=db, budget_id=budget.id)
-        categories.extend(budget_categories)
-    
-    return categories
+    """Get all categories (no village restriction)"""
+    if current_user.role == "admin":
+        return db.query(models.BudgetCategory).all()
+    else:
+        # Only categories for budgets in user's village
+        budgets = db.query(models.Budget).filter(models.Budget.village_id == current_user.village_id).all()
+        budget_ids = [b.id for b in budgets]
+        return db.query(models.BudgetCategory).filter(models.BudgetCategory.budget_id.in_(budget_ids)).all()
 
 
 @router.post("/", response_model=schemas.CategoryOut, status_code=status.HTTP_201_CREATED)
 def create_category(
     category: schemas.CategoryCreate,
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Create a new budget category"""
@@ -42,13 +40,20 @@ def create_category(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Budget with id {category.budget_id} not found"
         )
-    
+    # Only admin may create categories
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admin can create categories"
+        )
+
     return crud.create_category(db=db, category=category)
 
 
 @router.get("/budget/{budget_id}", response_model=List[schemas.CategoryOut])
 def get_categories_by_budget(
     budget_id: int,
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get all categories for a specific budget"""
@@ -60,12 +65,20 @@ def get_categories_by_budget(
             detail=f"Budget with id {budget_id} not found"
         )
     
+    # Admin can access any budget's categories, villagers only their village's budgets
+    if current_user.role != "admin" and budget.village_id != current_user.village_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this budget"
+        )
+    
     return crud.get_categories_by_budget(db=db, budget_id=budget_id)
 
 
 @router.get("/{category_id}", response_model=schemas.CategoryOut)
 def get_category(
     category_id: int,
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get a specific category by ID"""
@@ -75,19 +88,41 @@ def get_category(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Category with id {category_id} not found"
         )
+    
+    # Admin can access any category, villagers only their village's categories
+    if current_user.role != "admin":
+        budget = crud.get_budget_by_id(db=db, budget_id=category.budget_id)
+        if budget.village_id != current_user.village_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied to this category"
+            )
+    
     return category
 
 
 @router.get("/{category_id}/remaining")
 def get_remaining_budget(
     category_id: int,
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get remaining budget for a specific category"""
-    result = crud.get_remaining_budget_by_category(db=db, category_id=category_id)
-    if result is None:
+    category = crud.get_category_by_id(db=db, category_id=category_id)
+    if category is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Category with id {category_id} not found"
         )
+    
+    # Admin can access any category, villagers only their village's categories
+    if current_user.role != "admin":
+        budget = crud.get_budget_by_id(db=db, budget_id=category.budget_id)
+        if budget.village_id != current_user.village_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied to this category"
+            )
+    
+    result = crud.get_remaining_budget_by_category(db=db, category_id=category_id)
     return result

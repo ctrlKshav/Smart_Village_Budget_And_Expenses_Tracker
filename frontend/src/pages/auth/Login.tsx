@@ -1,4 +1,4 @@
-﻿import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const [role, setRole] = useState<'villager' | 'admin'>('villager');
+  const [selectedVillage, setSelectedVillage] = useState<number | null>(null);
+  const [villages, setVillages] = useState<{ id: number; name: string }[]>([]);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -19,10 +22,17 @@ export default function Login() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    
+    // Validate villager village selection
+    if (role === 'villager' && !selectedVillage) {
+      setError('Please select a village');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await login(formData.email, formData.password);
+      await login(formData.email, formData.password, role, role === 'villager' ? selectedVillage ?? undefined : undefined);
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Login failed:', error);
@@ -31,6 +41,21 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  // Fetch villages for villager selection
+  useEffect(() => {
+    const fetchVillages = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/villages/public');
+        const data = await res.json();
+        setVillages(data || []);
+        if (data && data.length > 0) setSelectedVillage(data[0].id);
+      } catch (e) {
+        // ignore
+      }
+    };
+    fetchVillages();
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 px-4">
@@ -49,11 +74,49 @@ export default function Login() {
               </div>
             )}
             <div className="space-y-2">
+              <Label>Login As</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input 
+                    type="radio" 
+                    checked={role === 'villager'} 
+                    onChange={() => setRole('villager')} 
+                  />
+                  <span>Villager</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input 
+                    type="radio" 
+                    checked={role === 'admin'} 
+                    onChange={() => setRole('admin')} 
+                  />
+                  <span>Admin</span>
+                </label>
+              </div>
+            </div>
+            {role === 'villager' && (
+              <div className="space-y-2">
+                <Label htmlFor="village">Select Village</Label>
+                <select 
+                  id="village" 
+                  className="w-full p-2 border rounded-md dark:bg-gray-800 dark:border-gray-700" 
+                  value={selectedVillage ?? ''} 
+                  onChange={(e) => setSelectedVillage(Number(e.target.value))}
+                  required
+                >
+                  <option value="">Select a village</option>
+                  {villages.map(v => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@example.com"
+                placeholder={role === 'admin' ? 'admin@example.com' : 'your@email.com'}
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required

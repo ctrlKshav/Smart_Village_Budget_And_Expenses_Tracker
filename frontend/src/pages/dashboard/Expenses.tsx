@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Plus, Pencil, Trash2, Receipt, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import api from '@/services/api';
+import ExpenseCharts from '@/components/charts/ExpenseCharts';
+import { useAuth } from '@/context/AuthContext';
 
 interface Category {
   id: number;
@@ -27,6 +29,7 @@ interface Expense {
 }
 
 export default function Expenses() {
+  const { user } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,18 +135,20 @@ export default function Expenses() {
 
   return (
     <div className="space-y-6">
+      <ExpenseCharts expenses={expenses} categories={categories} />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Expense Tracking</h1>
           <p className="text-muted-foreground">Log and monitor expenses against budget categories</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Log Expense
-            </Button>
-          </DialogTrigger>
+        {user?.role === 'admin' && (
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Log Expense
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Log New Expense</DialogTitle>
@@ -220,7 +225,8 @@ export default function Expenses() {
               </DialogFooter>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        )}
       </div>
 
       <Card>
@@ -271,20 +277,24 @@ export default function Expenses() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openEdit(expense)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(expense.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {user?.role === 'admin' && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openEdit(expense)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDelete(expense.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -297,7 +307,8 @@ export default function Expenses() {
       </Card>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+      {user?.role === 'admin' && (
+        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Expense</DialogTitle>
@@ -371,7 +382,8 @@ export default function Expenses() {
             </DialogFooter>
           </form>
         </DialogContent>
-      </Dialog>
+        </Dialog>
+      )}
     </div>
   );
 }

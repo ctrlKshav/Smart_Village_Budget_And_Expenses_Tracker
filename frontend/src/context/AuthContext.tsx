@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '@/services/api';
 
 interface Village {
@@ -13,6 +13,7 @@ interface User {
   id: number;
   email: string;
   name: string;
+  role?: string;
   village_id: number | null;
   is_active: boolean;
   created_at: string;
@@ -22,8 +23,8 @@ interface User {
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, village_id: number) => Promise<void>;
+  login: (email: string, password: string, role: string, village_id?: number | null) => Promise<void>;
+  register: (name: string, email: string, password: string, role: string, village_id?: number | null) => Promise<void>;
   logout: () => void;
 }
 
@@ -44,9 +45,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, role: string, village_id?: number | null) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const payload: any = { email, password, role };
+      if (role === 'villager' && village_id) {
+        payload.village_id = village_id;
+      }
+      const response = await api.post('/auth/login', payload);
       const { access_token, user: userData } = response.data;
       
       localStorage.setItem('auth_token', access_token);
@@ -59,9 +64,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string, password: string, village_id: number) => {
+  const register = async (name: string, email: string, password: string, role: string, village_id?: number | null) => {
     try {
-      const response = await api.post('/auth/register', { name, email, password, village_id });
+      const payload: any = { name, email, password, role };
+      if (role === 'villager') payload.village_id = village_id;
+      const response = await api.post('/auth/register', payload);
       const { access_token, user: userData } = response.data;
       
       localStorage.setItem('auth_token', access_token);
@@ -70,7 +77,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAuthenticated(true);
       setUser(userData);
     } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Registration failed');
+      const detail = error.response?.data?.detail;
+      const message = Array.isArray(detail)
+        ? detail.map((e: { msg?: string }) => e.msg).filter(Boolean).join(', ') || 'Registration failed'
+        : typeof detail === 'string'
+          ? detail
+          : 'Registration failed. Check backend is running and try again.';
+      throw new Error(message);
     }
   };
 

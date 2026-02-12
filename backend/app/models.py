@@ -14,6 +14,7 @@ class User(Base):
     email = Column(String(150), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     village_id = Column(Integer, ForeignKey("villages.id", ondelete="SET NULL"), nullable=True)
+    role = Column(String(20), nullable=False, default="villager")  # 'admin' or 'villager'
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
