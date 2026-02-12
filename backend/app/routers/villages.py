@@ -32,7 +32,8 @@ def list_villages(
     else:
         # Villagers only see their own village
         if current_user.village_id is None:
-            return []
+            villages = crud.get_villages(db=db, skip=0, limit=100)
+            return villages
         village = crud.get_village_by_id(db=db, village_id=current_user.village_id)
         return [village] if village else []
 
